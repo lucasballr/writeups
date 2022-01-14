@@ -7,7 +7,7 @@ then it gave a prompt. It seemed like anything you sent in the prompt would exit
 
 I opened the binary in GDB to find exactly that. Looking at the functions I found "\_start" was where all the magic happened. It was very crude instructions in 32-bit. It looked a little bit like this:
 
-![[Pasted image 20220113144304.png]]
+![Pasted image 20220113144304](https://user-images.githubusercontent.com/63262961/149428905-e619f0ad-0fd7-48ad-981c-3a42d0d86ae1.png)
 
 I was interested in this part:
 ```

